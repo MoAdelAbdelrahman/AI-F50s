@@ -59,19 +59,19 @@ class Plane:
         self.img_count += 1
 
         if self.img_count < self.animationTime:
-            self.img = self.imgs[0]
+            self.img = self.imgs[0].convert_alpha()
         elif self.img_count < self.animationTime*2:
-            self.img = self.imgs[1]
+            self.img = self.imgs[1].convert_alpha()
         elif self.img_count < self.animationTime*3:
-            self.img = self.imgs[2]
+            self.img = self.imgs[2].convert_alpha()
         elif self.img_count < self.animationTime*4:
-            self.img = self.imgs[1]
+            self.img = self.imgs[1].convert_alpha()
         elif self.img_count == self.animationTime*4+1:
-            self.img = self.imgs[0]
+            self.img = self.imgs[0].convert_alpha()
             self.img_count = 0
 
         if self.tilt <= -80:
-            self.img = self.imgs[1]
+            self.img = self.imgs[1].convert_alpha()
             self.img_count = self.animationTime * 2
 
         rotated_img = pygame.transform.rotate(self.img, self.tilt)
@@ -106,8 +106,8 @@ class Mountain:
         self.x -= self.vel
 
     def draw(self, win):
-        win.blit(self.mntnTop, (self.x, self.top))
-        win.blit(self.mntn_btm, (self.x, self.bottom))
+        win.blit(self.mntnTop.convert_alpha(), (self.x, self.top))
+        win.blit(self.mntn_btm.convert_alpha(), (self.x, self.bottom))
 
     def collide(self, plane):
         plane_mask = plane.get_mask()
@@ -145,8 +145,8 @@ class Bg_anime:
             self.x2 = self.x1 + self.width
 
     def draw(self, win):
-        win.blit(self.img, (self.x1, self.y))
-        win.blit(self.img, (self.x2, self.y))
+        win.blit(self.img.convert_alpha(), (self.x1, self.y))
+        win.blit(self.img.convert_alpha(), (self.x2, self.y))
 
 
 class Base:
@@ -169,34 +169,67 @@ class Base:
             self.x2 = self.x1 + self.width
 
     def draw(self, win):
-        win.blit(self.img, (self.x1, self.y))
-        win.blit(self.img, (self.x2, self.y))
+        win.blit(self.img.convert_alpha(), (self.x1, self.y))
+        win.blit(self.img.convert_alpha(), (self.x2, self.y))
 
 
 def draw_win(win, plane, mountains, base, back):
-    win.blit(bg_img, (0, 0))
+    win.blit(bg_img.convert_alpha(), (0, 0))
+
+    back.draw(win)
+    base.draw(win)
     for mntn in mountains:
         mntn.draw(win)
-
-    base.draw(win)
-    back.draw(win)
     plane.draw(win)
     pygame.display.update()
+
 
 
 def main():
     backAnimation = Bg_anime(0)
     plane = Plane(300, 200)
-    base = Base(500)
-    mntns = [Mountain(600)]
+    base = Base(510)
+    pos_factor = 600
+    speed = 30
+    mntns = [Mountain(pos_factor)]
     win = pygame.display.set_mode((WIN_W, WIN_H))
     clock = pygame.time.Clock()
+    score = 0
     run = True
+    plane.img.convert_alpha()
+    base.img.convert_alpha()
+    backAnimation.img.convert_alpha()
+
+    # main game loop
     while run:
-        clock.tick(30)
+        clock.tick(speed)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+
+        # mountains movement
+        add_mntn = False
+        dismissed = []
+        for mntn in mntns:
+            if mntn.collide(plane):
+                pass
+
+            if mntn.x + mntn.mntnTop.get_width() < 0:
+                dismissed.append(mntn)
+
+            if not mntn.passed and mntn.x < plane.x:
+                mntn.passed = True
+                add_mntn = True
+            mntn.move()
+        if add_mntn:
+            score += 1
+            mntns.append(Mountain(pos_factor))
+
+        for m in dismissed:
+            mntns.remove(m)
+
+
+        # moving other objects
         # plane.move()
         backAnimation.move()
         base.move()
