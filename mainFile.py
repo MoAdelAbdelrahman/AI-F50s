@@ -14,6 +14,7 @@ plane_imgs = [pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "p
 mntn_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mntn.png")))
 base_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "base.png")))
 bg_img = pygame.image.load(os.path.join("imgs", "background.png"))
+bg_anime = pygame.image.load(os.path.join("imgs", "bganime.png"))
 
 
 class Plane:
@@ -124,6 +125,30 @@ class Mountain:
         return False
 
 
+class Bg_anime:
+    vel = 5
+    width = bg_anime.get_width()
+    img = bg_anime
+
+    def __init__(self, y):
+        self.y = y
+        self.x1 = 0
+        self.x2 = self.width
+
+    def move(self):
+        self.x1 -= self.vel
+        self.x2 -= self.vel
+
+        if self.x1 + self.width < 0:
+            self.x1 = self.x2 + self.width
+        if self.x2 + self.width < 0:
+            self.x2 = self.x1 + self.width
+
+    def draw(self, win):
+        win.blit(self.img, (self.x1, self.y))
+        win.blit(self.img, (self.x2, self.y))
+
+
 class Base:
     vel = 5
     width = base_img.get_width()
@@ -148,17 +173,19 @@ class Base:
         win.blit(self.img, (self.x2, self.y))
 
 
-def draw_win(win, plane, mountains, base):
+def draw_win(win, plane, mountains, base, back):
     win.blit(bg_img, (0, 0))
     for mntn in mountains:
         mntn.draw(win)
 
     base.draw(win)
+    back.draw(win)
     plane.draw(win)
     pygame.display.update()
 
 
 def main():
+    backAnimation = Bg_anime(0)
     plane = Plane(300, 200)
     base = Base(500)
     mntns = [Mountain(600)]
@@ -171,8 +198,9 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
         # plane.move()
+        backAnimation.move()
         base.move()
-        draw_win(win, plane, mntns, base)
+        draw_win(win, plane, mntns, base, backAnimation)
     pygame.quit()
     quit()
 
