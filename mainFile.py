@@ -106,6 +106,21 @@ class mountain:
         win.blit(self.mntnTop, (self.x, self.top))
         win.blit(self.mntn_btm, (self.x, self.bottom))
 
+    def collide(self, plane):
+        plane_mask = plane.get_mask()
+        topMntnMask = pygame.mask.from_surface(self.mntnTop)
+        bottomMntnMask = pygame.mask.from_surface(self.mntn_btm)
+
+        top_offset = (self.x - plane.x, self.top - round(plane.y))
+        bottom_offset = (self.x - plane.x, self.bottom - round(plane.y))
+
+        planePointB = plane_mask.overlap(bottomMntnMask, bottom_offset)
+        planePointT = plane_mask.overlap(topMntnMask, top_offset)
+
+        if planePointB or planePointT:
+            return True
+        return False
+
 
 def draw(win, plane):
     win.blit(bg_img, (0, 0))
