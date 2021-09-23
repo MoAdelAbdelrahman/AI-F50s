@@ -13,7 +13,7 @@ plane_imgs = [pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "p
               pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "plane3.png")))]
 mntn_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mntn.png")))
 base_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "base.png")))
-bg_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "background.png")))
+bg_img = pygame.image.load(os.path.join("imgs", "background.png"))
 
 
 class Plane:
@@ -80,9 +80,11 @@ class Plane:
     def get_mask(self):
         return pygame.mask.from_surface(self.img)
 
-class mountain:
+
+class Mountain:
     gap = 200
     vel = 5
+
     def __init__(self, x):
         self.x = x
         self.height = 0
@@ -96,8 +98,8 @@ class mountain:
 
     def setHeight(self):
         self.height = random.randrange(50,450)
-        self.mntnTop = self.height - self.mntnTop.get_height()
-        self.mntn_btm = self.height + self.gap
+        self.top = self.height - self.mntnTop.get_height()
+        self.bottom = self.height + self.gap
 
     def move(self):
         self.x -= self.vel
@@ -120,6 +122,7 @@ class mountain:
         if planePointB or planePointT:
             return True
         return False
+
 
 class Base:
     vel = 5
@@ -145,14 +148,20 @@ class Base:
         win.blit(self.img, (self.x2, self.y))
 
 
-def draw_win(win, plane):
+def draw_win(win, plane, mountains, base):
     win.blit(bg_img, (0, 0))
+    for mntn in mountains:
+        mntn.draw(win)
+
+    base.draw(win)
     plane.draw(win)
     pygame.display.update()
 
 
 def main():
     plane = Plane(300, 200)
+    base = Base(500)
+    mntns = [Mountain(600)]
     win = pygame.display.set_mode((WIN_W, WIN_H))
     clock = pygame.time.Clock()
     run = True
@@ -161,8 +170,9 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-        plane.move()
-        draw_win(win, plane)
+        # plane.move()
+        base.move()
+        draw_win(win, plane, mntns, base)
     pygame.quit()
     quit()
 
