@@ -13,7 +13,7 @@ plane_imgs = [pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "p
               pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "plane3.png")))]
 mntn_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mntn.png")))
 base_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "base.png")))
-bg_img = pygame.image.load(os.path.join("imgs", "background.png"))
+
 bg_anime = pygame.image.load(os.path.join("imgs", "bganime.png"))
 
 
@@ -174,26 +174,29 @@ class Base:
 
 
 def draw_win(win, plane, mountains, base, back):
-    win.blit(bg_img.convert_alpha(), (0, 0))
+    win.blit(bg_anime.convert_alpha(), (0, 0))
 
     back.draw(win)
     base.draw(win)
     for mntn in mountains:
+        mntn.mntnTop.convert_alpha()
+        mntn.mntnTop.convert_alpha()
         mntn.draw(win)
     plane.draw(win)
     pygame.display.update()
 
 
-
 def main():
+
     backAnimation = Bg_anime(0)
     plane = Plane(300, 200)
     base = Base(510)
     pos_factor = 600
     speed = 30
-    mntns = [Mountain(pos_factor)]
-    win = pygame.display.set_mode((WIN_W, WIN_H))
     clock = pygame.time.Clock()
+    win = pygame.display.set_mode((WIN_W, WIN_H))
+    firstMntn = Mountain(pos_factor)
+    mntns = [firstMntn]
     score = 0
     run = True
     plane.img.convert_alpha()
@@ -202,7 +205,7 @@ def main():
 
     # main game loop
     while run:
-        clock.tick(speed)
+        clock.tick(30)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -214,20 +217,24 @@ def main():
             if mntn.collide(plane):
                 pass
 
-            if mntn.x + mntn.mntnTop.get_width() < 0:
+            # out of frame
+            if mntn.x + mntn.mntnTop.convert_alpha().get_width() < 0:
                 dismissed.append(mntn)
 
+            # plane passed the mountain
             if not mntn.passed and mntn.x < plane.x:
                 mntn.passed = True
                 add_mntn = True
-            mntn.move()
+
         if add_mntn:
-            score += 1
             mntns.append(Mountain(pos_factor))
+            score += 1
 
-        for m in dismissed:
-            mntns.remove(m)
+        # out of frame mountain to delete
+        if mntn in dismissed:
+            mntns.remove(mntn)
 
+        mntn.move()
 
         # moving other objects
         # plane.move()
