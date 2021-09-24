@@ -55,28 +55,38 @@ class Plane:
             if self.tilt > -90:
                 self.tilt -= self.rotate_vel
 
+    def prepare(self):
+        self.img.convert_alpha()
+        planeRect = self.img.get_rect()
+        planeSurface = pygame.Surface((planeRect.width, planeRect.height), pygame.SRCALPHA)
+        planeSurface.fill((0, 0, 0, 0))
+        planeSurface.blit(self.img, planeRect)
+        return planeSurface
+
     def draw(self, win):
         self.img_count += 1
 
         if self.img_count < self.animationTime:
-            self.img = self.imgs[0].convert_alpha()
+            self.img = self.imgs[0]
         elif self.img_count < self.animationTime*2:
-            self.img = self.imgs[1].convert_alpha()
+            self.img = self.imgs[1]
         elif self.img_count < self.animationTime*3:
-            self.img = self.imgs[2].convert_alpha()
+            self.img = self.imgs[2]
         elif self.img_count < self.animationTime*4:
-            self.img = self.imgs[1].convert_alpha()
+            self.img = self.imgs[1]
         elif self.img_count == self.animationTime*4+1:
-            self.img = self.imgs[0].convert_alpha()
+            self.img = self.imgs[0]
             self.img_count = 0
 
         if self.tilt <= -80:
-            self.img = self.imgs[1].convert_alpha()
+            self.img = self.imgs[1]
             self.img_count = self.animationTime * 2
+
+        Surface = self.prepare()
 
         rotated_img = pygame.transform.rotate(self.img, self.tilt)
         new_rect = rotated_img.get_rect(center=self.img.get_rect(center=(self.x, self.y)).center)
-        win.blit(rotated_img, new_rect.topleft)
+        win.blit(Surface, new_rect.topleft)
 
     def get_mask(self):
         return pygame.mask.from_surface(self.img)
@@ -106,8 +116,10 @@ class Mountain:
         self.x -= self.vel
 
     def draw(self, win):
-        win.blit(self.mntnTop.convert_alpha(), (self.x, self.top))
-        win.blit(self.mntn_btm.convert_alpha(), (self.x, self.bottom))
+        bliterTop = self.mntnTop.convert_alpha()
+        bliterBtm = self.mntn_btm.convert_alpha()
+        win.blit(bliterTop, (self.x, self.top))
+        win.blit(bliterBtm, (self.x, self.bottom))
 
     def collide(self, plane):
         plane_mask = plane.get_mask()
@@ -144,9 +156,17 @@ class Bg_anime:
         if self.x2 + self.width < 0:
             self.x2 = self.x1 + self.width
 
+    def prepare(self):
+        BG = self.img.get_rect()
+        BGSurface = pygame.Surface((BG.width, BG.height), pygame.SRCALPHA)
+        BGSurface.fill((0, 0, 0, 0))
+        BGSurface.blit(self.img, BG)
+        return BGSurface
+
     def draw(self, win):
-        win.blit(self.img.convert_alpha(), (self.x1, self.y))
-        win.blit(self.img.convert_alpha(), (self.x2, self.y))
+        Surface = self.prepare()
+        win.blit(Surface, (self.x1, self.y))
+        win.blit(Surface, (self.x2, self.y))
 
 
 class Base:
@@ -168,26 +188,32 @@ class Base:
         if self.x2 + self.width < 0:
             self.x2 = self.x1 + self.width
 
+    def prepare(self):
+        self.img.convert_alpha()
+        baseRect = self.img.get_rect()
+        baseSurface = pygame.Surface((baseRect.width, baseRect.height), pygame.SRCALPHA)
+        baseSurface.fill((0, 0, 0, 0))
+        baseSurface.blit(self.img, baseRect)
+        return baseSurface
+
     def draw(self, win):
-        win.blit(self.img.convert_alpha(), (self.x1, self.y))
-        win.blit(self.img.convert_alpha(), (self.x2, self.y))
+        surface = self.prepare()
+        win.blit(surface, (self.x1, self.y))
+        win.blit(surface, (self.x2, self.y))
 
 
 def draw_win(win, plane, mountains, base, back):
-    win.blit(bg_anime.convert_alpha(), (0, 0))
-
+    clock = pygame.time.Clock()
+    clock.tick(120)
     back.draw(win)
     base.draw(win)
     for mntn in mountains:
-        mntn.mntnTop.convert_alpha()
-        mntn.mntnTop.convert_alpha()
         mntn.draw(win)
     plane.draw(win)
     pygame.display.update()
 
 
 def main():
-
     backAnimation = Bg_anime(0)
     plane = Plane(300, 200)
     base = Base(510)
@@ -199,13 +225,10 @@ def main():
     mntns = [firstMntn]
     score = 0
     run = True
-    plane.img.convert_alpha()
-    base.img.convert_alpha()
-    backAnimation.img.convert_alpha()
 
     # main game loop
     while run:
-        clock.tick(30)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -214,6 +237,9 @@ def main():
         add_mntn = False
         dismissed = []
         for mntn in mntns:
+            mntn.mntnTop.convert_alpha()
+            mntn.mntn_btm.convert_alpha()
+            mntn.move()
             if mntn.collide(plane):
                 pass
 
@@ -233,8 +259,6 @@ def main():
         # out of frame mountain to delete
         if mntn in dismissed:
             mntns.remove(mntn)
-
-        mntn.move()
 
         # moving other objects
         # plane.move()
