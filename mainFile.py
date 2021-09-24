@@ -3,6 +3,7 @@ import neat
 import os
 import time
 import random
+pygame.font.init()
 
 
 WIN_W = 800
@@ -15,6 +16,7 @@ mntn_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "mntn
 base_img = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "base.png")))
 
 bg_anime = pygame.image.load(os.path.join("imgs", "bganime.png"))
+font = pygame.font.SysFont("comicsans", 50)
 
 
 class Plane:
@@ -202,20 +204,23 @@ class Base:
         win.blit(surface, (self.x2, self.y))
 
 
-def draw_win(win, plane, mountains, base, back):
+def draw_win(win, plane, mountains, base, back, passedCount):
     clock = pygame.time.Clock()
     clock.tick(120)
     back.draw(win)
     base.draw(win)
+    text = font.render(str(passedCount), 1, (0, 255, 0))
+
     for mntn in mountains:
         mntn.draw(win)
     plane.draw(win)
+    win.blit(text, (WIN_W - 10 - text.get_width(), 10))
     pygame.display.update()
 
 
 def main():
     backAnimation = Bg_anime(0)
-    plane = Plane(300, 200)
+    plane = Plane(int(WIN_W / 2), int(WIN_H / 2))
     base = Base(510)
     pos_factor = 600
     speed = 30
@@ -225,10 +230,10 @@ def main():
     mntns = [firstMntn]
     score = 0
     run = True
-
+    checkerOutOfFrame = firstMntn.mntnTop.get_width()
     # main game loop
     while run:
-
+        clock.tick(speed)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -236,35 +241,38 @@ def main():
         # mountains movement
         add_mntn = False
         dismissed = []
-        for mntn in mntns:
-            mntn.mntnTop.convert_alpha()
-            mntn.mntn_btm.convert_alpha()
-            mntn.move()
-            if mntn.collide(plane):
+        for i in range(len(mntns)):
+            mntns[i].mntnTop.convert_alpha()
+            mntns[i].mntn_btm.convert_alpha()
+            mntns[i].move()
+            if mntns[i].collide(plane):
                 pass
 
             # out of frame
-            if mntn.x + mntn.mntnTop.convert_alpha().get_width() < 0:
-                dismissed.append(mntn)
+            if mntns[i].x + checkerOutOfFrame < 0:
+                dismissed.append(mntns[i])
 
             # plane passed the mountain
-            if not mntn.passed and mntn.x < plane.x:
-                mntn.passed = True
+            if not mntns[i].passed and mntns[i].x + pos_factor < plane.x:
+                mntns[i].passed = True
+                score += 1
                 add_mntn = True
 
         if add_mntn:
             mntns.append(Mountain(pos_factor))
-            score += 1
 
         # out of frame mountain to delete
-        if mntn in dismissed:
-            mntns.remove(mntn)
+        if mntns[i] in dismissed:
+            mntns.remove(mntns[i])
 
+        #plane hit the floor
+        if plane.y + plane.img.get_height() >= 630:
+            pass
         # moving other objects
         # plane.move()
         backAnimation.move()
         base.move()
-        draw_win(win, plane, mntns, base, backAnimation)
+        draw_win(win, plane, mntns, base, backAnimation, score)
     pygame.quit()
     quit()
 
