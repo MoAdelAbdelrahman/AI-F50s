@@ -26,6 +26,7 @@ class Plane:
     max_rotate = 25
     rotate_vel = 20
     animationTime = 5
+    died = False
 
     def __init__(self, x, y):
         self.x = x
@@ -307,9 +308,13 @@ def main(genomes, config):
         # plane hit the floor or went too high
         for i in range(len(planes)):
             if plane.y + plane.img.get_height() - 10 >= 630 or plane.y < -50:
-                planes.pop(planes.index(plane))
-                ge.pop(planes.index(plane))
-                nets.pop(planes.index(plane))
+                planes[i].died = True
+
+        for x, plane in enumerate(planes):
+            if plane.died:
+                planes.pop(x)
+                ge.pop(x)
+                nets.pop(x)
         # moving other objects
         # plane.move()
         backAnimation.move()
