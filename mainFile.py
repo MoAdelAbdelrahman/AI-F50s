@@ -3,8 +3,10 @@ import neat
 import os
 import time
 import random
-pygame.font.init()
+import pickle
 
+
+pygame.font.init()
 
 WIN_W = 800
 WIN_H = 600
@@ -70,13 +72,13 @@ class Plane:
 
         if self.img_count < self.animationTime:
             self.img = self.imgs[0]
-        elif self.img_count < self.animationTime*2:
+        elif self.img_count < self.animationTime * 2:
             self.img = self.imgs[1]
-        elif self.img_count < self.animationTime*3:
+        elif self.img_count < self.animationTime * 3:
             self.img = self.imgs[2]
-        elif self.img_count < self.animationTime*4:
+        elif self.img_count < self.animationTime * 4:
             self.img = self.imgs[1]
-        elif self.img_count == self.animationTime*4+1:
+        elif self.img_count == self.animationTime * 4 + 1:
             self.img = self.imgs[0]
             self.img_count = 0
 
@@ -110,7 +112,7 @@ class Mountain:
         self.setHeight()
 
     def setHeight(self):
-        self.height = random.randrange(50,450)
+        self.height = random.randrange(50, 450)
         self.top = self.height - self.mntnTop.get_height()
         self.bottom = self.height + self.gap
 
@@ -204,7 +206,7 @@ class Base:
         win.blit(surface, (self.x2, self.y))
 
 
-def draw_win(win, plane, mountains, base, back, passedCount):
+def draw_win(win, planes, mountains, base, back, passedCount):
     clock = pygame.time.Clock()
     clock.tick(120)
     back.draw(win)
@@ -213,14 +215,17 @@ def draw_win(win, plane, mountains, base, back, passedCount):
 
     for mntn in mountains:
         mntn.draw(win)
-    plane.draw(win)
+    for plane in planes:
+        plane.draw(win)
     win.blit(text, (WIN_W - 10 - text.get_width(), 10))
     pygame.display.update()
 
 
-def main():
+def main(genomes, config):
     backAnimation = Bg_anime(0)
-    plane = Plane(int(WIN_W / 2), int(WIN_H / 2))
+    plane_x = int(WIN_W / 2)
+    plane_y = int(WIN_H / 2)
+    planes = []
     base = Base(510)
     pos_factor = 600
     speed = 30
@@ -229,14 +234,43 @@ def main():
     firstMntn = Mountain(pos_factor)
     mntns = [firstMntn]
     score = 0
-    run = True
+    running = True
     checkerOutOfFrame = firstMntn.mntnTop.get_width()
+    nets = []
+    planes = []
+    ge = []
+    for Gid, genome in genomes:
+        genome.fitness = 0
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
+        nets.append(net)
+        planes.append(Plane(plane_x, plane_y))
+        ge.append(genome)
     # main game loop
-    while run:
+    while running:
         clock.tick(speed)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
+                running = False
+                pygame.quit()
+                quit()
+
+        # planes movement
+
+        mntnIndex = 0
+        if len(planes) > 0:
+            if len(mntns) > 1 and planes[0].x > mntns[0].x + mntns[0].mntnTop.get_width():
+                mntnIndex = 1
+        else:
+            running = False
+            break
+
+        for x, plane in enumerate(planes):
+            plane.move()
+            ge[x].fitness += 0.1
+
+            output = nets[x].activate((plane.y, abs(plane.y - mntns[mntnIndex].height), abs(plane.y - mntns[mntnIndex].bottom)))
+            if output[0] > 0.5:
+                plane.jump()
 
         # mountains movement
         add_mntn = False
@@ -245,36 +279,59 @@ def main():
             mntns[i].mntnTop.convert_alpha()
             mntns[i].mntn_btm.convert_alpha()
             mntns[i].move()
-            if mntns[i].collide(plane):
-                pass
+            for plane in planes:
+                if mntns[i].collide(plane):
+                    ge[i].fitness -= 1
+                    planes.pop(i)
+                    ge.pop(i)
+                    nets.pop(i)
 
+                if not mntns[i].passed and mntns[i].x + pos_factor < plane.x:
+                    mntns[i].passed = True
+                    add_mntn = True
             # out of frame
             if mntns[i].x + checkerOutOfFrame < 0:
                 dismissed.append(mntns[i])
 
             # plane passed the mountain
-            if not mntns[i].passed and mntns[i].x + pos_factor < plane.x:
-                mntns[i].passed = True
-                score += 1
-                add_mntn = True
-
         if add_mntn:
+            for g in ge:
+                g.fitness += 5
+            score += 1
             mntns.append(Mountain(pos_factor))
 
         # out of frame mountain to delete
         if mntns[i] in dismissed:
             mntns.remove(mntns[i])
 
-        #plane hit the floor
-        if plane.y + plane.img.get_height() >= 630:
-            pass
+        # plane hit the floor or went too high
+        for i in range(len(planes)):
+            if plane.y + plane.img.get_height() - 10 >= 630 or plane.y < -50:
+                planes.pop(planes.index(plane))
+                ge.pop(planes.index(plane))
+                nets.pop(planes.index(plane))
         # moving other objects
         # plane.move()
         backAnimation.move()
         base.move()
-        draw_win(win, plane, mntns, base, backAnimation, score)
-    pygame.quit()
-    quit()
+        draw_win(win, planes, mntns, base, backAnimation, score)
 
 
-main()
+
+def run(configFile):
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                configFile)
+
+    population = neat.Population(config)
+    population.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    population.add_reporter(stats)
+
+    winner = population.run(main, 50)
+
+
+if __name__ == "__main__":
+    local_dir = os.path.dirname(__file__)
+    configPath = os.path.join(local_dir, "neatConfig.txt")
+    run(configPath)
