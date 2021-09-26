@@ -224,11 +224,11 @@ def draw_win(win, planes, mountains, base, back, passedCount):
 
 def main(genomes, config):
     backAnimation = Bg_anime(0)
-    plane_x = int(WIN_W / 2)
-    plane_y = int(WIN_H / 2)
+    plane_x = 230
+    plane_y = 300
     planes = []
     base = Base(510)
-    pos_factor = 600
+    pos_factor = 300
     speed = 30
     clock = pygame.time.Clock()
     win = pygame.display.set_mode((WIN_W, WIN_H))
@@ -283,11 +283,9 @@ def main(genomes, config):
             for plane in planes:
                 if mntns[i].collide(plane):
                     ge[i].fitness -= 1
-                    planes.pop(i)
-                    ge.pop(i)
-                    nets.pop(i)
+                    plane.died = True
 
-                if not mntns[i].passed and mntns[i].x + pos_factor < plane.x:
+                if not mntns[i].passed and mntns[i].x + 600 < plane.x:
                     mntns[i].passed = True
                     add_mntn = True
             # out of frame
@@ -312,12 +310,14 @@ def main(genomes, config):
 
         for x, plane in enumerate(planes):
             if plane.died:
+                ge[x].fitness -= 1
                 planes.pop(x)
                 ge.pop(x)
                 nets.pop(x)
+
         # moving other objects
         # plane.move()
-        backAnimation.move()
+       # backAnimation.move()
         base.move()
         draw_win(win, planes, mntns, base, backAnimation, score)
 
@@ -333,7 +333,7 @@ def run(configFile):
     stats = neat.StatisticsReporter()
     population.add_reporter(stats)
 
-    winner = population.run(main, 50)
+    winner = population.run(main, 20)
 
 
 if __name__ == "__main__":
